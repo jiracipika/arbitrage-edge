@@ -34,7 +34,6 @@ export default function Markets() {
             <button key={t} onClick={() => setTab(t)} style={{
               padding: '8px 20px', borderRadius: 12, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer',
               background: tab === t ? 'var(--ios-blue)' : 'var(--ios-bg2)', color: tab === t ? '#fff' : 'var(--ios-label2)',
-              boxShadow: tab === t ? '0 2px 8px rgba(0,122,255,0.3)' : 'var(--ios-shadow)',
             }}>{t === 'polymarket' ? 'Polymarket' : 'Exchanges'}</button>
           ))}
         </div>
@@ -50,25 +49,24 @@ export default function Markets() {
               ))}
               <span style={{ fontSize: 13, color: 'var(--ios-label3)', display: 'flex', alignItems: 'center', marginLeft: 8 }}>{filtered.length} markets</span>
             </div>
-
             {loading ? (
               <div style={{ textAlign: 'center', padding: 60, color: 'var(--ios-label3)' }}>Loading live markets...</div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
                 {filtered.map(m => (
                   <div key={m.id} style={{ padding: 20, borderRadius: 16, background: 'var(--ios-bg2)', boxShadow: 'var(--ios-shadow)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 12 }}>
-                      <span style={{ padding: '3px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, background: 'rgba(0,122,255,0.08)', color: 'var(--ios-blue)', textTransform: 'uppercase' }}>{m.category}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <span style={{ padding: '3px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, background: 'rgba(0,122,255,0.08)', color: 'var(--ios-blue)' }}>{m.category}</span>
                       <span style={{ fontSize: 12, fontWeight: 600, color: m.change24h > 0 ? 'var(--ios-green)' : 'var(--ios-red)' }}>{m.change24h > 0 ? '+' : ''}{m.change24h}%</span>
                     </div>
-                    <h3 style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.2px', marginBottom: 16, lineHeight: 1.3, color: 'var(--ios-label)' }}>{m.question}</h3>
+                    <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 16, lineHeight: 1.3, color: 'var(--ios-label)' }}>{m.question}</h3>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                       <div style={{ flex: 1, padding: 10, borderRadius: 10, background: 'rgba(52,199,89,0.08)', textAlign: 'center' }}>
-                        <div style={{ fontSize: 10, color: 'var(--ios-label3)', fontWeight: 500, marginBottom: 2 }}>YES</div>
+                        <div style={{ fontSize: 10, color: 'var(--ios-label3)', marginBottom: 2 }}>YES</div>
                         <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ios-green)' }}>{(m.yesPrice * 100).toFixed(0)}c</div>
                       </div>
                       <div style={{ flex: 1, padding: 10, borderRadius: 10, background: 'rgba(255,59,48,0.08)', textAlign: 'center' }}>
-                        <div style={{ fontSize: 10, color: 'var(--ios-label3)', fontWeight: 500, marginBottom: 2 }}>NO</div>
+                        <div style={{ fontSize: 10, color: 'var(--ios-label3)', marginBottom: 2 }}>NO</div>
                         <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ios-red)' }}>{(m.noPrice * 100).toFixed(0)}c</div>
                       </div>
                     </div>
@@ -76,7 +74,6 @@ export default function Markets() {
                       <span>Vol: ${(m.volume24h / 1000).toFixed(0)}k</span>
                       <span>Liq: ${(m.liquidity / 1000).toFixed(0)}k</span>
                     </div>
-                    {m.endDate && <div style={{ fontSize: 11, color: 'var(--ios-label3)', marginTop: 6 }}>Expires: {m.endDate}</div>}
                   </div>
                 ))}
               </div>
@@ -84,19 +81,11 @@ export default function Markets() {
           </>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
-            {[
-              { exchange: 'Binance', price: '$92,467', change: 2.34, volume: '2.1B' },
-              { exchange: 'Coinbase', price: '$92,482', change: 2.31, volume: '1.4B' },
-              { exchange: 'Kraken', price: '$92,455', change: 2.37, volume: '890M' },
-              { exchange: 'Bybit', price: '$92,471', change: 2.33, volume: '1.7B' },
-            ].map((e, i) => (
+            {[{n:'Binance',p:'$92,467',c:2.34,v:'2.1B'},{n:'Coinbase',p:'$92,482',c:2.31,v:'1.4B'},{n:'Kraken',p:'$92,455',c:2.37,v:'890M'},{n:'Bybit',p:'$92,471',c:2.33,v:'1.7B'}].map((e,i)=>(
               <div key={i} style={{ padding: 24, borderRadius: 16, background: 'var(--ios-bg2)', boxShadow: 'var(--ios-shadow)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 700 }}>{e.exchange}</h3>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ios-green)' }}>+{e.change}%</span>
-                </div>
-                <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-1px', marginBottom: 4 }}>{e.price}</div>
-                <div style={{ fontSize: 13, color: 'var(--ios-label3)' }}>Volume: {e.volume}</div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>{e.n}</h3>
+                <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-1px', marginBottom: 4 }}>{e.p}</div>
+                <div style={{ fontSize: 13, color: 'var(--ios-label3)' }}>Volume: {e.v}</div>
               </div>
             ))}
           </div>
