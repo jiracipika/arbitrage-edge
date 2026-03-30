@@ -8,9 +8,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <div style={{ minHeight: '100vh', background: 'var(--ios-bg)' }}>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            try { var t = localStorage.getItem('ae-theme'); if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch(e) {}
+          })();
+        ` }} />
+        <div style={{ minHeight: '100vh', background: 'var(--ios-bg)', color: 'var(--ios-label)', transition: 'background 0.3s, color 0.3s' }}>
           {children}
         </div>
       </body>

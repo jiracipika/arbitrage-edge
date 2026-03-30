@@ -12,8 +12,58 @@
   --ios-purple: #af52de;
   --ios-shadow: 0 2px 10px rgba(0,0,0,0.08);
   --ios-shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+  --ios-card-radius: 16px;
+  --ios-nav-bg: rgba(255,255,255,0.72);
+  --ios-gradient-hero: linear-gradient(160deg, #0a0a1a 0%, #1a1a3e 40%, #0d2137 100%);
+  --ios-gradient-accent: linear-gradient(135deg, #007aff, #5856d6);
+  --ios-text-primary: #1c1c1e;
+  --ios-text-secondary: #3c3c43;
+  --ios-text-tertiary: #8e8e93;
+  --ios-surface-1: #f2f2f7;
+  --ios-surface-2: #ffffff;
+  --ios-border: #c6c6c8;
+}
+
+[data-theme="dark"] {
+  --ios-bg: #000000;
+  --ios-bg2: #1c1c1e;
+  --ios-label: #ffffff;
+  --ios-label2: #ebebf5;
+  --ios-label3: #8e8e93;
+  --ios-separator: #38383a;
+  --ios-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  --ios-shadow-lg: 0 8px 30px rgba(0,0,0,0.4);
+  --ios-nav-bg: rgba(28,28,30,0.8);
+  --ios-text-primary: #ffffff;
+  --ios-text-secondary: #ebebf5;
+  --ios-text-tertiary: #8e8e93;
+  --ios-surface-1: #000000;
+  --ios-surface-2: #1c1c1e;
+  --ios-border: #38383a;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: var(--ios-bg);
+  color: var(--ios-label);
+}
 a { text-decoration: none; color: inherit; }
+button { font-family: inherit; }
+
+/* Responsive helpers */
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+  .grid-responsive { grid-template-columns: 1fr !important; }
+  .flex-responsive { flex-direction: column !important; }
+}
+
+@media (max-width: 480px) {
+  .hide-sm { display: none !important; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ios-separator); border-radius: 3px; }
