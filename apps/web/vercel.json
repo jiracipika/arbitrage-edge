@@ -1,5 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "cd ../.. && pnpm build",
-  "outputDirectory": ".next"
+  "buildCommand": "cd ../.. && pnpm install && cd apps/web && npx next build",
+  "outputDirectory": ".next",
+  "installCommand": "cd ../.. && pnpm install"
 }
