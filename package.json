@@ -1,0 +1,10 @@
+{
+  "name": "arbitrage-edge",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @repo/web dev",
+    "build": "pnpm --filter @repo/web build",
+    "lint": "pnpm --filter @repo/web lint"
+  }
+}
