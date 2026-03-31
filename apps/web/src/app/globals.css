@@ -10,9 +10,9 @@
   --ios-red: #ff3b30;
   --ios-orange: #ff9500;
   --ios-purple: #af52de;
-  --ios-shadow: 0 2px 10px rgba(0,0,0,0.08);
-  --ios-shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
-  --ios-card-radius: 16px;
+  --ios-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  --ios-shadow-lg: 0 8px 30px rgba(0,0,0,0.10);
+  --ios-card-radius: 20px;
   --ios-nav-bg: rgba(255,255,255,0.72);
   --ios-gradient-hero: linear-gradient(160deg, #0a0a1a 0%, #1a1a3e 40%, #0d2137 100%);
   --ios-gradient-accent: linear-gradient(135deg, #007aff, #5856d6);
@@ -22,6 +22,8 @@
   --ios-surface-1: #f2f2f7;
   --ios-surface-2: #ffffff;
   --ios-border: #c6c6c8;
+  --ios-radius-sm: 12px;
+  --ios-radius-xs: 8px;
 }
 
 [data-theme="dark"] {
@@ -46,11 +48,22 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background: var(--ios-bg);
   color: var(--ios-label);
+  line-height: 1.47;
+  letter-spacing: -0.022em;
 }
 a { text-decoration: none; color: inherit; }
-button { font-family: inherit; }
+button { font-family: inherit; cursor: pointer; }
+
+/* Smooth transitions on interactive elements */
+a, button, input, select {
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+a:hover, button:hover {
+  opacity: 0.85;
+}
 
 /* Responsive helpers */
 @media (max-width: 768px) {
@@ -67,3 +80,20 @@ button { font-family: inherit; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--ios-separator); border-radius: 3px; }
+
+/* Focus ring — Apple-style */
+:focus-visible {
+  outline: 2px solid var(--ios-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Card hover lift */
+.ios-card {
+  transition: transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1),
+              box-shadow 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.ios-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ios-shadow-lg);
+}
