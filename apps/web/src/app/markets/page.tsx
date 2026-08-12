@@ -10,11 +10,18 @@ export default function Markets() {
   const [tab, setTab] = useState<'polymarket' | 'exchanges'>('polymarket');
   const [markets, setMarkets] = useState<PolymarketMarket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    const data = await fetchPolymarketCrypto();
-    setMarkets(data);
-    setLoading(false);
+    try {
+      const data = await fetchPolymarketCrypto();
+      setMarkets(data);
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to load market data');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -51,6 +58,10 @@ export default function Markets() {
             </div>
             {loading ? (
               <div style={{ textAlign: 'center', padding: 60, color: 'var(--ios-label3)' }}>Loading live markets...</div>
+            ) : error ? (
+              <div role="alert" style={{ textAlign: 'center', padding: 40, color: 'var(--ios-red)' }}>
+                Live market data is unavailable: {error}
+              </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
                 {filtered.map(m => (

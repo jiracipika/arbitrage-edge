@@ -12,12 +12,19 @@ export default function Opportunities() {
   const [btcPrice, setBtcPrice] = useState<BTCPrice | null>(null);
   const [opportunities, setOpportunities] = useState<ArbOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    const [btc, markets] = await Promise.all([fetchBTCPrice(), fetchPolymarketCrypto()]);
-    setBtcPrice(btc);
-    setOpportunities(detectArbitrage(btc.price, markets));
-    setLoading(false);
+    try {
+      const [btc, markets] = await Promise.all([fetchBTCPrice(), fetchPolymarketCrypto()]);
+      setBtcPrice(btc);
+      setOpportunities(detectArbitrage(btc.price, markets));
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to scan live markets');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -35,8 +42,8 @@ export default function Opportunities() {
             <p style={{ fontSize: 15, color: 'var(--ios-label3)' }}>BTC {btcPrice ? formatUSD(btcPrice.price) : '...'} &middot; {filtered.length} opportunities</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--ios-green)', boxShadow: '0 0 8px rgba(52,199,89,0.5)' }} />
-            <span style={{ fontSize: 13, color: 'var(--ios-green)', fontWeight: 500 }}>Scanning</span>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: error ? 'var(--ios-red)' : 'var(--ios-green)', boxShadow: error ? 'none' : '0 0 8px rgba(52,199,89,0.5)' }} />
+            <span style={{ fontSize: 13, color: error ? 'var(--ios-red)' : 'var(--ios-green)', fontWeight: 500 }}>{error ? 'Data unavailable' : 'Scanning'}</span>
           </div>
         </div>
 
@@ -58,6 +65,10 @@ export default function Opportunities() {
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--ios-label3)' }}>Scanning markets...</div>
+        ) : error ? (
+          <div role="alert" style={{ textAlign: 'center', padding: 40, color: 'var(--ios-red)' }}>
+            Scanner paused because live data could not be verified: {error}
+          </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--ios-label3)' }}>No opportunities match your filters. Try lowering thresholds.</div>
         ) : (

@@ -80,7 +80,7 @@ export default function Dashboard() {
           </div>
 
           <div style={cardStyle}>
-            <div style={{ fontSize: 12, color: 'var(--ios-label3)', fontWeight: 500, marginBottom: 4 }}>Today's P&L</div>
+            <div style={{ fontSize: 12, color: 'var(--ios-label3)', fontWeight: 500, marginBottom: 4 }}>Today&apos;s P&L</div>
             <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--ios-green)', letterSpacing: '-0.5px' }}>${MOCK_PNL.today.toLocaleString()}</div>
             <div style={{ fontSize: 12, color: 'var(--ios-label3)', marginTop: 2 }}>{MOCK_PNL.todayTrades} trades</div>
           </div>

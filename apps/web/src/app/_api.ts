@@ -3,7 +3,37 @@
 // ============================================================
 
 const COINGECKO_BASE = 'https://api.coingecko.com/api/v3';
-const POLYMARKET_BASE = 'https://clob.polymarket.com';
+const POLYMARKET_BASE = 'https://gamma-api.polymarket.com';
+const REQUEST_TIMEOUT_MS = 10_000;
+
+async function fetchJson(url: string, label: string): Promise<unknown> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+    if (!res.ok) throw new Error(`${label} returned HTTP ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`${label} timed out after ${REQUEST_TIMEOUT_MS / 1000}s`);
+    }
+    throw error instanceof Error ? error : new Error(`${label} request failed`);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function finiteNumber(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 // ---- Types ----
 export interface BTCPrice {
@@ -59,110 +89,93 @@ export interface ArbOpportunity {
 
 // ---- CoinGecko API ----
 export async function fetchBTCPrice(): Promise<BTCPrice> {
-  try {
-    const res = await fetch(
-      `${COINGECKO_BASE}/coins/bitcoin?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=true`,
-      { next: { revalidate: 30 } }
-    );
-    if (!res.ok) throw new Error('CoinGecko API failed');
-    const data = await res.json();
-    const md = data.market_data;
-    return {
-      price: md.current_price.usd,
-      change24h: md.price_change_percentage_24h,
-      high24h: md.high_24h.usd,
-      low24h: md.low_24h.usd,
-      volume24h: md.total_volume.usd,
-      marketCap: md.market_cap.usd,
-      sparkline: md.sparkline_7d?.price?.slice(-24) || [],
-      lastUpdated: data.last_updated,
-    };
-  } catch {
-    // Fallback to mock
-    return {
-      price: 92467.35,
-      change24h: 2.34,
-      high24h: 93500,
-      low24h: 90800,
-      volume24h: 2_100_000_000,
-      marketCap: 1_820_000_000_000,
-      sparkline: [89200, 89800, 90500, 89100, 89700, 90200, 91000, 91500, 90800, 91200, 92000, 91800, 92200, 91900, 92467],
-      lastUpdated: new Date().toISOString(),
-    };
+  const data = asRecord(await fetchJson(
+    `${COINGECKO_BASE}/coins/bitcoin?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=true`,
+    'CoinGecko'
+  ));
+  const md = asRecord(data?.market_data);
+  const currentPrice = asRecord(md?.current_price);
+  const high24h = asRecord(md?.high_24h);
+  const low24h = asRecord(md?.low_24h);
+  const volume24h = asRecord(md?.total_volume);
+  const marketCap = asRecord(md?.market_cap);
+  const sparkline = asRecord(md?.sparkline_7d);
+  const values = {
+    price: finiteNumber(currentPrice?.usd),
+    change24h: finiteNumber(md?.price_change_percentage_24h),
+    high24h: finiteNumber(high24h?.usd),
+    low24h: finiteNumber(low24h?.usd),
+    volume24h: finiteNumber(volume24h?.usd),
+    marketCap: finiteNumber(marketCap?.usd),
+  };
+
+  if (!data || Object.values(values).some(value => value === null) || typeof data.last_updated !== 'string') {
+    throw new Error('CoinGecko returned an invalid BTC price payload');
   }
+
+  return {
+    price: values.price!, change24h: values.change24h!, high24h: values.high24h!,
+    low24h: values.low24h!, volume24h: values.volume24h!, marketCap: values.marketCap!,
+    sparkline: Array.isArray(sparkline?.price)
+      ? sparkline.price.map(finiteNumber).filter((value): value is number => value !== null).slice(-24)
+      : [],
+    lastUpdated: data.last_updated,
+  };
 }
 
 export async function fetchBTCCandles(days: number = 1): Promise<Candle[]> {
-  try {
-    const res = await fetch(
-      `${COINGECKO_BASE}/coins/bitcoin/ohlc?vs_currency=usd&days=${days}`,
-      { next: { revalidate: 60 } }
-    );
-    if (!res.ok) throw new Error('CoinGecko OHLC failed');
-    const data: number[][] = await res.json();
-    return data.map(([time, open, high, low, close]) => ({
-      time: Math.floor(time / 1000),
-      open, high, low, close,
-      volume: 0,
-    }));
-  } catch {
-    // Generate mock candles
-    const candles: Candle[] = [];
-    let price = 91000;
-    for (let i = 0; i < 24; i++) {
-      const change = (Math.random() - 0.45) * 500;
-      const open = price;
-      price += change;
-      candles.push({
-        time: Math.floor(Date.now() / 1000) - (24 - i) * 3600,
-        open,
-        high: Math.max(open, price) + Math.random() * 200,
-        low: Math.min(open, price) - Math.random() * 200,
-        close: price,
-        volume: Math.random() * 100000000,
-      });
-    }
-    return candles;
-  }
+  const data = await fetchJson(
+    `${COINGECKO_BASE}/coins/bitcoin/ohlc?vs_currency=usd&days=${days}`,
+    'CoinGecko OHLC'
+  );
+  if (!Array.isArray(data)) throw new Error('CoinGecko returned an invalid OHLC payload');
+
+  return data.flatMap((row): Candle[] => {
+    if (!Array.isArray(row) || row.length < 5) return [];
+    const values = row.slice(0, 5).map(finiteNumber);
+    if (values.some(value => value === null)) return [];
+    const [time, open, high, low, close] = values as number[];
+    return [{ time: Math.floor(time / 1000), open, high, low, close, volume: 0 }];
+  });
 }
 
 // ---- Polymarket API ----
 export async function fetchPolymarketCrypto(): Promise<PolymarketMarket[]> {
-  try {
-    const res = await fetch(
-      `${POLYMARKET_BASE}/markets?tag=crypto&limit=20&active=true`,
-      { next: { revalidate: 30 } }
-    );
-    if (!res.ok) throw new Error('Polymarket API failed');
-    const data = await res.json();
-    return data.map((m: any) => ({
-      id: m.id || m.condition_id,
-      question: m.question || m.title,
-      slug: m.slug || '',
-      yesPrice: parseFloat(m.outcomePrices?.[0] || m.yes_price || '0.5'),
-      noPrice: parseFloat(m.outcomePrices?.[1] || m.no_price || '0.5'),
-      volume24h: parseFloat(m.volume24hr || '0'),
-      liquidity: parseFloat(m.liquidity || '0'),
-      change24h: parseFloat(m.change24hr || '0'),
-      category: m.group_slug || 'crypto',
-      endDate: m.endDate || m.end_date || '',
-      image: m.image || '',
-    }));
-  } catch {
-    // Fallback mock
-    return [
-      { id: 'pm1', question: 'BTC above $95k by April 15?', slug: 'btc-above-95k-apr15', yesPrice: 0.42, noPrice: 0.58, volume24h: 245000, liquidity: 890000, change24h: 5.2, category: 'Price Level', endDate: '2026-04-15' },
-      { id: 'pm2', question: 'BTC reaches $100k before May?', slug: 'btc-100k-may', yesPrice: 0.28, noPrice: 0.72, volume24h: 180000, liquidity: 620000, change24h: -3.1, category: 'Price Level', endDate: '2026-05-01' },
-      { id: 'pm3', question: 'ETH above $4k by April?', slug: 'eth-4k-apr', yesPrice: 0.35, noPrice: 0.65, volume24h: 95000, liquidity: 340000, change24h: 8.7, category: 'Price Level', endDate: '2026-04-30' },
-      { id: 'pm4', question: 'SOL above $200 by April?', slug: 'sol-200-apr', yesPrice: 0.22, noPrice: 0.78, volume24h: 62000, liquidity: 210000, change24h: 12.4, category: 'Price Level', endDate: '2026-04-30' },
-      { id: 'pm5', question: 'BTC halving year new ATH?', slug: 'btc-ath-2026', yesPrice: 0.67, noPrice: 0.33, volume24h: 520000, liquidity: 1200000, change24h: 2.8, category: 'Event', endDate: '2026-12-31' },
-      { id: 'pm6', question: 'BTC drops below $85k in April?', slug: 'btc-below-85k', yesPrice: 0.15, noPrice: 0.85, volume24h: 310000, liquidity: 780000, change24h: -4.5, category: 'Price Level', endDate: '2026-04-30' },
-      { id: 'pm7', question: 'Total crypto mcap above $4T by June?', slug: 'crypto-mcap-4t', yesPrice: 0.38, noPrice: 0.62, volume24h: 140000, liquidity: 450000, change24h: 6.1, category: 'Event', endDate: '2026-06-30' },
-      { id: 'pm8', question: 'ETH flips BTC in daily volume', slug: 'eth-flip-btc-vol', yesPrice: 0.08, noPrice: 0.92, volume24h: 28000, liquidity: 85000, change24h: -1.2, category: 'Event', endDate: '2026-12-31' },
-      { id: 'pm9', question: 'BTC dominance above 60% by April?', slug: 'btc-dom-60', yesPrice: 0.54, noPrice: 0.46, volume24h: 89000, liquidity: 320000, change24h: 1.9, category: 'Trend', endDate: '2026-04-30' },
-      { id: 'pm10', question: 'DOGE above $0.30 by April?', slug: 'doge-30-apr', yesPrice: 0.18, noPrice: 0.82, volume24h: 72000, liquidity: 190000, change24h: 15.3, category: 'Price Level', endDate: '2026-04-30' },
-    ];
-  }
+  const data = await fetchJson(
+    `${POLYMARKET_BASE}/markets?active=true&closed=false&limit=100&tag_slug=crypto`,
+    'Polymarket'
+  );
+  if (!Array.isArray(data)) throw new Error('Polymarket returned an invalid markets payload');
+
+  const markets = data.flatMap((value): PolymarketMarket[] => {
+    const market = asRecord(value);
+    if (!market) return [];
+    let outcomes: unknown = market.outcomePrices;
+    if (typeof outcomes === 'string') {
+      try { outcomes = JSON.parse(outcomes); } catch { return []; }
+    }
+    if (!Array.isArray(outcomes) || typeof market.id !== 'string' || typeof market.question !== 'string') return [];
+    const yesPrice = finiteNumber(outcomes[0]);
+    const noPrice = finiteNumber(outcomes[1]);
+    if (yesPrice === null || noPrice === null || yesPrice < 0 || yesPrice > 1 || noPrice < 0 || noPrice > 1) return [];
+
+    return [{
+      id: market.id,
+      question: market.question,
+      slug: typeof market.slug === 'string' ? market.slug : '',
+      yesPrice,
+      noPrice,
+      volume24h: finiteNumber(market.volume24hr) ?? 0,
+      liquidity: finiteNumber(market.liquidityNum ?? market.liquidity) ?? 0,
+      change24h: finiteNumber(market.oneDayPriceChange) ?? 0,
+      category: typeof market.category === 'string' ? market.category : 'Crypto',
+      endDate: typeof market.endDate === 'string' ? market.endDate : '',
+      image: typeof market.image === 'string' ? market.image : undefined,
+    }];
+  });
+
+  if (markets.length === 0) throw new Error('Polymarket returned no usable crypto markets');
+  return markets;
 }
 
 // ---- Arbitrage Detection Engine ----
